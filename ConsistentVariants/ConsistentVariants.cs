@@ -3,24 +3,23 @@ using System.Collections.Generic;
 using UnityEngine;
 using KSP.UI.Screens;
 using System.Linq;
-#if DEBUG
-using System.IO;
-#endif
 
 namespace ConsistentVariants
 {
     [KSPAddon(KSPAddon.Startup.EditorAny, false)]
     public class ConsistentVariants : MonoBehaviour
     {
-        string _defaultTheme = "ConsistentVariants Theme: None";
+        public static ConsistentVariants instance;
+        public string _defaultTheme = "None";
         string _fallbackVariant;
         ApplicationLauncherButton _toolbarButton;
         bool _variantListenerEnabled = true;
         bool _overrideVariant = true;
-        List<uint> _knownParts = new List<uint>();
+        public List<uint> _knownParts = new List<uint>();
 
         public void Awake()
         {
+            instance = this;
             GameEvents.onEditorPartPlaced.Add(EditorPartPlaced);
             GameEvents.onVariantApplied.Add(EditorVariantApplied);
             GameEvents.onEditorDefaultVariantChanged.Add(DefaultVariantSet);
@@ -67,10 +66,20 @@ namespace ConsistentVariants
             string themeToApply = DefineDefaultTheme(variant.Name, part.partPrefab.name);
             if (themeToApply != null)
             {
-                _defaultTheme = themeToApply;
-                Debug.Log("[ConsistentVariants]: DefaultSet: " + _defaultTheme + " is now the new default theme");
+                UpdateDefaultTheme(themeToApply);
             }
             _fallbackVariant = variant.Name;
+        }
+
+        private void UpdateDefaultTheme(string themeToApply)
+        {
+            _defaultTheme = themeToApply;
+            for(int i = 0; i<EditorLogic.SortedShipList.Count; i++)
+            {
+                Part p = EditorLogic.SortedShipList.ElementAt(i);
+                p.FindModulesImplementing<ModuleConsistentVariants>().FirstOrDefault()._defaultTheme = _defaultTheme;
+            }
+            Debug.Log("[ConsistentVariants]: " + _defaultTheme + " is now the new default theme");
         }
 
         private void GUIReady()
@@ -98,26 +107,21 @@ namespace ConsistentVariants
             string themeToApply = DefineDefaultTheme(v.Name, p.name);
             if (themeToApply != null && themeToApply != _defaultTheme)
             {
-                Debug.Log("[ConsistentVariants]: " + _defaultTheme + " is now the default theme");
-                _defaultTheme = themeToApply;
+                UpdateDefaultTheme(themeToApply);
             }
             _fallbackVariant = v.Name;
             Debug.Log("[ConsistentVariants]: Fallback variant is " + _fallbackVariant);
         }
 
-        private void EditorPartPlaced(Part part)
+        public void EditorPartPlaced(Part part)
         {
             if (!_variantListenerEnabled) return;
             if (part == null || part.variants == null) return;
             if (_knownParts.Contains(part.persistentId)) return;
             if (_defaultTheme == null)
             {
-                string themeToApply = DefineDefaultTheme(part.variants.SelectedVariant.Name, part.partName);
-                if (themeToApply != null && themeToApply != _defaultTheme)
-                {
-                    _defaultTheme = themeToApply;
-                    Debug.Log("[ConsistentVariants]: " + _defaultTheme + " is now the default theme");
-                }
+                string themeToApply = DefineDefaultTheme(part.variants.SelectedVariant.Name, part.name);
+                if (themeToApply != null && themeToApply != _defaultTheme) UpdateDefaultTheme(themeToApply);
                     _fallbackVariant = part.variants.SelectedVariant.Name;
                 Debug.Log("[ConsistentVariants]: " + _defaultTheme + " is now the default theme");
                 Debug.Log("[ConsistentVariants]: Fallback variant is " + _fallbackVariant);
@@ -134,7 +138,7 @@ namespace ConsistentVariants
             }
             part.variants.SetVariant(variantToApply);
             Debug.Log("[ConsistentVariants]: Applied " + variantToApply + " to " + part.partInfo.title);
-            _knownParts.Add(part.persistentId);
+            if(!_knownParts.Contains(part.persistentId))_knownParts.Add(part.persistentId);
         }
 
         private string GetVariantToApply(string variantName, Part p)
@@ -147,7 +151,7 @@ namespace ConsistentVariants
             for (int i = 0; i < partNodes.Count(); i++)
             {
                 partNode = partNodes.ElementAt(i);
-                if (partNode.GetValue("PartName") != p.partName) continue;
+                if (partNode.GetValue("PartName") != p.name) continue;
                 variantNodes = partNode.GetNodes("VARIANT");
                 for (int variantCount = 0; variantCount < variantNodes.Count(); variantCount++)
                 {
@@ -185,6 +189,16 @@ namespace ConsistentVariants
                 }
             }
             return null;
+        }
+
+        public void OnDisable()
+        {
+            GameEvents.onEditorPartPlaced.Remove(EditorPartPlaced);
+            GameEvents.onVariantApplied.Remove(EditorVariantApplied);
+            GameEvents.onEditorDefaultVariantChanged.Remove(DefaultVariantSet);
+            GameEvents.onGUIApplicationLauncherReady.Remove(GUIReady);
+            GameEvents.onEditorPodPicked.Remove(EditorPartPlaced);
+            if (_toolbarButton != null) ApplicationLauncher.Instance.RemoveModApplication(_toolbarButton);
         }
     }
 }
