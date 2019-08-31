@@ -137,6 +137,10 @@ namespace ConsistentVariants
                 return;
             }
             part.variants.SetVariant(variantToApply);
+            foreach (Part p in part.symmetryCounterparts)
+            {
+                p.variants.SetVariant(variantToApply);
+            }
             Debug.Log("[ConsistentVariants]: Applied " + variantToApply + " to " + part.partInfo.title);
             if(!_knownParts.Contains(part.persistentId))_knownParts.Add(part.persistentId);
         }
