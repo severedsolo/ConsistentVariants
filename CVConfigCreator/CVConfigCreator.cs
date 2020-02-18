@@ -1,31 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Linq;
 using UnityEngine;
 
 namespace CVConfigCreator
 {
     [KSPAddon(KSPAddon.Startup.EditorAny, false)]
-    public class CVConfigCreator : MonoBehaviour
+    public class CvConfigCreator : MonoBehaviour
     {
         public void Start()
         {
             ConfigNode[] loadedNodes = GameDatabase.Instance.GetConfigNodes("CONSISTENT_VARIANT");
             ConfigNode masterNode = new ConfigNode();
-            for(int partCount = 0; partCount<PartLoader.LoadedPartsList.Count(); partCount++)
+            for(int partCount = 0; partCount<PartLoader.LoadedPartsList.Count; partCount++)
             {
                 bool configAlreadyExists = false;
                 AvailablePart ap = PartLoader.LoadedPartsList.ElementAt(partCount);
                 if (ap.Variants == null || ap.Variants.Count == 0) continue;
-                for (int i = 0; i<loadedNodes.Count(); i++)
+                for (int i = 0; i<loadedNodes.Length; i++)
                 {
                     ConfigNode node = loadedNodes.ElementAt(i);
-                    if(node.GetValue("PartName") == ap.partPrefab.name)
-                    {
-                        configAlreadyExists = true;
-                        break;
-                    }
+                    if (node.GetValue("PartName") != ap.partPrefab.name) continue;
+                    configAlreadyExists = true;
+                    break;
                 }
                 if (configAlreadyExists) continue;
                 ConfigNode cn = new ConfigNode("CONSISTENT_VARIANT");

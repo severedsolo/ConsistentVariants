@@ -1,39 +1,37 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using UnityEngine;
+using JetBrains.Annotations;
 
 namespace ConsistentVariants
 {
-    class ModuleConsistentVariants : PartModule
+    internal class ModuleConsistentVariants : PartModule
     {
-        [KSPField(isPersistant = false, guiActive = false, guiActiveEditor = true, guiName = "Default Variant: ")]
-        public string _defaultTheme = "None";
+        [KSPField(isPersistant = false, guiActive = false, guiActiveEditor = true, guiName = "Default Variant: ")] [UsedImplicitly]
+        public string defaultTheme = "None";
 
         [KSPEvent(active = true, guiActive = false, guiActiveEditor = true, guiActiveUnfocused = false, externalToEVAOnly = false, guiName = "Apply Default Variant")]
         public void ApplyVariantToPart()
         {
-            ConsistentVariants.instance._knownParts.Remove(part.persistentId);
-            ConsistentVariants.instance.EditorPartPlaced(part);
+            ConsistentVariants.Instance.knownParts.Remove(part.persistentId);
+            ConsistentVariants.Instance.EditorPartPlaced(part);
         }
 
         [KSPEvent(active = true, guiActive = false, guiActiveEditor = true, guiActiveUnfocused = false, externalToEVAOnly = false, guiName = "Apply Default Variant To All")]
         public void ApplyVariantToAllParts()
         {
             List<Part> editorParts = EditorLogic.SortedShipList;
-            for (int i = 0; i < editorParts.Count(); i++)
+            for (int i = 0; i < editorParts.Count; i++)
             {
                 Part p = editorParts.ElementAt(i);
-                ConsistentVariants.instance._knownParts.Remove(p.persistentId);
-                ConsistentVariants.instance.EditorPartPlaced(p);
+                ConsistentVariants.Instance.knownParts.Remove(p.persistentId);
+                ConsistentVariants.Instance.EditorPartPlaced(p);
             }
         }
 
-        void Start()
+        private void Start()
         {
-            if (ConsistentVariants.instance == null) return;
-            _defaultTheme = ConsistentVariants.instance._defaultTheme;
+            if (ConsistentVariants.Instance == null) return;
+            defaultTheme = ConsistentVariants.Instance.defaultTheme;
         }
     }
 }
